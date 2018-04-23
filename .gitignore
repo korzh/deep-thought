@@ -286,3 +286,7 @@ __pycache__/
 *.btm.cs
 *.odx.cs
 *.xsd.cs
+/ConsoleApp/data/testkb-questions.xml
+/ConsoleApp/data/testkb-articles.xml
+/ConsoleApp/data/eq-questions-train.xml
+/ConsoleApp/data/eq-questions-test.xml

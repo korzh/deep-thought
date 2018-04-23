@@ -48,7 +48,8 @@ namespace Korzh.NLP.DocIndex
                 }
             }
 
-            docData.IncImportance(1);
+            docData.IncDocScore(1);
+
             return docData;
         }
 
@@ -147,13 +148,14 @@ namespace Korzh.NLP.DocIndex
         public string DocumentId { get; internal set; }
 
         private double _totalWordScore;
+
         //Total score of all words included in this document
         //In the simplest case - it just the word count
         public double TotalWordScore => _totalWordScore;
 
-        private double _importance = 0;
+        private double _docScore = 0;
 
-        public double Importance => _importance;
+        public double DocScore => _docScore;
 
 
         public DocData(string docId) {
@@ -165,12 +167,12 @@ namespace Korzh.NLP.DocIndex
             _totalWordScore += score;
         }
 
-        public void IncImportance(double value) {
-            _importance += value;
+        public void IncDocScore(double value) {
+            _docScore += value;
         }
 
         public string Serialize() {
-            return $"{Index},{DocumentId},{Importance.ToDotStr()},{TotalWordScore.ToDotStr()}"; 
+            return $"{Index},{DocumentId},{DocScore.ToDotStr()},{TotalWordScore.ToDotStr()}"; 
         }
 
         public void Deserialize(string s) {
@@ -180,7 +182,7 @@ namespace Korzh.NLP.DocIndex
         public Task ReadFromBinaryAsync(BinaryReader reader) {
             Index = reader.ReadInt32();
             DocumentId = reader.ReadString();
-            _importance = reader.ReadDouble();
+            _docScore = reader.ReadDouble();
             _totalWordScore = reader.ReadDouble();
 
             return Task.CompletedTask;
@@ -189,7 +191,7 @@ namespace Korzh.NLP.DocIndex
         public Task WriteToBinaryAsync(BinaryWriter writer) {
             writer.Write(Index);
             writer.Write(DocumentId);
-            writer.Write(Importance);
+            writer.Write(DocScore);
             writer.Write(TotalWordScore);
 
             return Task.CompletedTask;

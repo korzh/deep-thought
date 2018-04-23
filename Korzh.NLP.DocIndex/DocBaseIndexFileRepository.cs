@@ -10,8 +10,9 @@ namespace Korzh.NLP.DocIndex {
 
         private DocBaseIndexBinaryStorage _binaryStorage;
 
-        public DocBaseIndexFileRepository() {
+        public DocBaseIndexFileRepository(string folderPath) {
             _binaryStorage = new DocBaseIndexBinaryStorage();
+            FolderPath = folderPath;
         }
 
         public string FolderPath { get; set; } = "";

@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using Korzh.NLP;
-
 namespace Korzh.NLP.DocIndex
 {
     public class SmartTextClassifier {
@@ -15,77 +13,49 @@ namespace Korzh.NLP.DocIndex
             _docIndex = docIndex;
         }
 
-        public void AddTextToModel(string docId, string text, string[] tags, double value) {
-
-        }
-
-
-        public IEnumerable<DocChunk> SuggestTags(string text, int count) {
-            //find relevant tags
-            var tokenizer = new TextTokenizer(text, TextFormats.WordsOnly, _keywordExtractor);
-            var tagsDict = new Dictionary<string, double>();
-
-            string token = tokenizer.FirstToken();
-            while (token != null) {
-                if (_docIndex.Words.TryGetValue(token, out WordData wd)) {
-
-                    foreach (var wte in wd.TagScores) {
-                        var td = _docIndex.Tags[wte.ClassIndex];
-                        if (tagsDict.TryGetValue(td.Tag, out double score)) {
-                            score += wte.TFIDF * Math.Log10(td.Importance);
-                        }
-                        else {
-                            score = wte.TFIDF;
-                        }
-                        tagsDict[td.Tag] = score;
-                    }
-                }
-                token = tokenizer.NextToken();
-            }
-
-            return tagsDict
-                    .OrderByDescending(e => e.Value)
-                    .Take(count)
-                    .Select(de => new DocChunk(de.Key, de.Value));
-        }
-
-        public IEnumerable<DocChunk> SuggestDocs(string text, int count) {
+        public IEnumerable<DocPrediction> SuggestDocs(string text, int count) {
             //find relevant articles
             var tokenizer = new TextTokenizer(text, TextFormats.WordsOnly, _keywordExtractor);
-            var docsDict = new Dictionary<string, double>();
+            var docsDict = new Dictionary<DocData, double>();
 
+            //here we calculate the "score" of each document in our DB as the SUM of TFIDF of all words found in the text
             string token = tokenizer.FirstToken();
             while (token != null) {
                 if (_docIndex.Words.TryGetValue(token, out WordData wd)) {
                     foreach (var wdse in wd.DocScores) {
                         var dd = _docIndex.Documents[wdse.ClassIndex];
-                        if (docsDict.TryGetValue(dd.DocumentId, out double score)) {
-                            score += wdse.TFIDF; // * Math.Log10(dd.Importance);
+                        if (!docsDict.TryGetValue(dd, out double score)) {
+                            score = 0;
                         }
-                        else {
-                            score = wdse.TFIDF;
-                        }
-                        docsDict[dd.DocumentId] = score;
+                        score += wdse.TFIDF;
+                        docsDict[dd] = score;
                     }
                 }
                 token = tokenizer.NextToken();
             }
 
-            return docsDict
-                    .OrderByDescending(e => e.Value)
-                    .Take(count)
-                    .Select(de => new DocChunk(de.Key, de.Value));
+            var result = new List<DocPrediction>();
+
+            foreach (var dde in docsDict) {
+                var dd = dde.Key;
+                result.Add(new DocPrediction(dd.DocumentId, dde.Value));
+            }
+
+            return result
+                    .OrderByDescending(dp => dp.Relevance)
+                    .ToList()
+                    .Take(count);
         }
     }
 
 
-    public class DocChunk {
-        public string Id;
+    public class DocPrediction {
+        public string DocId;
 
         public double Relevance;
 
-        public DocChunk(string id, double relevance) {
-            Id = id;
+        public DocPrediction(string id, double relevance) {
+            DocId = id;
             Relevance = relevance;
         }
     }

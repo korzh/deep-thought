@@ -1,58 +1,77 @@
 ﻿using System.Collections.Generic;
 
 
-namespace Korzh.NLP.DocIndex
-{
+namespace Korzh.NLP.DocIndex {
     public class DocIndexBuilder
     {
+        private DocBaseIndex _docIndex;
 
         public DocIndexBuilder() {
+            _docIndex = new DocBaseIndex();
         }
 
+        public DocIndexBuilder(DocBaseIndex docIndex) {
+            _docIndex = docIndex;
+        }
 
-        public DocBaseIndex RefreshDocBaseIndex(IEnumerable<Document> documents, string lang) {
+        public DocBaseIndex DocIndex => _docIndex;
+
+        public void RefreshDocBaseIndex(IEnumerable<Document> documents, string lang) {
             var keywordExtractor = new KeywordExtractor(lang);
 
-            var docIndex = new DocBaseIndex();
-
             foreach (var document in documents) {
-                docIndex.AddDocument(document.Id);
-
-                var atokenizer = new TextTokenizer(document.Title, TextFormats.WordsOnly, keywordExtractor);
-
-                string atoken = atokenizer.FirstToken();
-                while (atoken != null) {
-                    docIndex.AddWordToDoc(document.Id, atoken, 10);
-                    atoken = atokenizer.NextToken();
-                }
-
-                if (document.Text != null) {
-                    atokenizer = new TextTokenizer(document.Text, TextFormats.WordsOnly, keywordExtractor);
-                    atoken = atokenizer.FirstToken();
-                    while (atoken != null) {
-                        docIndex.AddWordToDoc(document.Id, atoken);
-                        atoken = atokenizer.NextToken();
-                    }
-                }
+                AddDocument(document, keywordExtractor);
             }
 
-            docIndex.Recalculate();
-
-            return docIndex;
+            _docIndex.Recalculate();
         }
-    }
 
-    public class Document {
-        public string Id;
+        public void AddDocument(Document document, KeywordExtractor keywordExtractor) {
+            _docIndex.AddDocument(document.Id);
 
-        public string Title;
 
-        public string Text;
-    }
+            //add document's title
+            var atokenizer = new TextTokenizer(document.Title, TextFormats.WordsOnly, keywordExtractor);
+            string atoken = atokenizer.FirstToken();
+            while (atoken != null) {
+                _docIndex.AddWordToDoc(document.Id, atoken, 10);
+                atoken = atokenizer.NextToken();
+            }
 
-    public class Question {
-        public string Title;
+            //add document's content
+            if (document.Text != null) {
+                atokenizer = new TextTokenizer(document.Text, TextFormats.WordsOnly, keywordExtractor);
+                atoken = atokenizer.FirstToken();
+                while (atoken != null) {
+                    _docIndex.AddWordToDoc(document.Id, atoken);
+                    atoken = atokenizer.NextToken();
+                }
+            }
+        }
 
-        public string Details;
+        public void AddQuestion(Question question, KeywordExtractor keywordExtractor) {
+            if (question.DocId == null) {
+                //we can't add questions which are not answered yet.
+                return;
+            }
+
+            //add question's title
+            var qtokenizer = new TextTokenizer(question.Title, TextFormats.WordsOnly, keywordExtractor);
+            string qtoken = qtokenizer.FirstToken();
+            while (qtoken != null) {
+                _docIndex.AddWordToDoc(question.DocId, qtoken, 10);
+                qtoken = qtokenizer.NextToken();
+            }
+
+            //add question's content
+            if (question.Content != null) {
+                qtokenizer = new TextTokenizer(question.Content, TextFormats.WordsOnly, keywordExtractor);
+                qtoken = qtokenizer.FirstToken();
+                while (qtoken != null) {
+                    _docIndex.AddWordToDoc(question.DocId, qtoken);
+                    qtoken = qtokenizer.NextToken();
+                }
+            }
+        }
     }
 }

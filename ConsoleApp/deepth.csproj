@@ -6,4 +6,9 @@
     <RootNamespace>Korzh.DeepThought</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Korzh.NLP.Core\Korzh.NLP.Core.csproj" />
+    <ProjectReference Include="..\Korzh.NLP.DocIndex\Korzh.NLP.DocIndex.csproj" />
+  </ItemGroup>
+
 </Project>
