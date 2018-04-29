@@ -7,7 +7,7 @@ namespace Korzh.NLP.DocIndex
 {
     public static class QuestionXmlReader {
 
-        public static void ReadFile(string filePath, Action<Question> callback) {
+        public static void ReadFile(string filePath, Func<Question, bool> callback) {
             if (!File.Exists(filePath)) {
                 throw new DocBaseError("File does not exists: " + filePath);
             }
@@ -34,7 +34,9 @@ namespace Korzh.NLP.DocIndex
                         }
                     }
                     else if (reader.NodeType == XmlNodeType.EndElement && reader.LocalName == "Question") {
-                        callback(question);
+                        if (!callback(question)) {
+                            break;
+                        }
                     }
                 }
             }

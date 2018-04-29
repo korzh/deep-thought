@@ -22,21 +22,26 @@ namespace Korzh.DeepThought
             var dbId = args[1];
             var xmlFileName = args[2];
 
+            int maxCount = 0;
+            if (args.Length > 3) {
+                int.TryParse(args[3], out maxCount);
+            }
+
             if (command == "init") {
-                InitDb(dbId, xmlFileName);
+                InitDb(dbId, xmlFileName, maxCount);
             }
             else if (command == "train") {
-                Train(dbId, xmlFileName);
+                Train(dbId, xmlFileName, maxCount);
             }
             else if (command == "test") {
-                Test(dbId, xmlFileName);
+                Test(dbId, xmlFileName, maxCount);
             }
 #if DEBUG
             Console.ReadKey();
 #endif
         }
 
-        private static void InitDb(string dbId, string docsFileName) {
+        private static void InitDb(string dbId, string docsFileName, int maxCount = 0) {
             Console.WriteLine($"Initializing DocBase {dbId} with the documents from [{docsFileName}]...");
 
             var keywordExtractor = new KeywordExtractor("en");
@@ -45,20 +50,45 @@ namespace Korzh.DeepThought
             ArticleXmlReader.ReadFile(docsFileName, document => {
                 builder.AddDocument(document, keywordExtractor);
                 count++;
+                if (count % 500 == 0) {
+                    Console.Write($"\r{count} documents and {builder.DocIndex.Words.Count} words processed.     ");
+                }
+
+                if (maxCount > 0 && count >= maxCount) {
+                    return false;
+                }
+                return true;
             });
+
+            Console.WriteLine();
 
             var docIndex = builder.DocIndex;
 
+            Console.WriteLine($"Calculating TFIDF...");
             docIndex.Recalculate();
-            var docBaseFolder = System.IO.Path.Combine(_dataFolder, dbId);
+
+            var docBaseFolder = Path.Combine(_dataFolder, dbId);
+
+            var wordsFilePath = Path.Combine(docBaseFolder, "vocabulary.txt");
+            Console.WriteLine($"Dumping {dbId} vocabulary to [{wordsFilePath}]...");
+            using (var dictFile = new StreamWriter(wordsFilePath)) {
+                foreach (var we in docIndex.Words) {
+                    var wordScore = we.Value.DocScores.Sum(wds => wds.TFIDF);
+                    dictFile.WriteLine($"{we.Key}:{wordScore}");
+                }
+            }
+
+
             var docIndexRepo = new DocBaseIndexFileRepository(docBaseFolder);
+
+            Console.WriteLine($"Saving the index...");
             docIndexRepo.SaveAsync(dbId, docIndex).Wait();
 
             Console.WriteLine($"Done! {count} documents were added to the index");
         }
 
 
-        private static void Train(string dbId, string questionsFileName) {
+        private static void Train(string dbId, string questionsFileName, int maxCount = 0) {
             Console.WriteLine($"Training DocBase {dbId} with the documents from [{questionsFileName}]...");
 
             var docBaseFolder = System.IO.Path.Combine(_dataFolder, dbId);
@@ -73,17 +103,26 @@ namespace Korzh.DeepThought
             QuestionXmlReader.ReadFile(questionsFileName, question => {
                 builder.AddQuestion(question, keywordExtractor);
                 count++;
+                if (count % 500 == 0) {
+                    Console.Write($"\r{count} questions processed.  ");
+                }
+                if (maxCount > 0 && count >= maxCount) {
+                    return false;
+                }
+                return true;
             });
 
+            Console.WriteLine($"Recalculating TFIDF...");
             docIndex.Recalculate();
 
+            Console.WriteLine($"Saving the index...");
             docIndexRepo.SaveAsync(dbId, docIndex).Wait();
 
             Console.WriteLine($"Done! {count} questions were added to the index");
         }
 
 
-        private static void Test(string dbId, string xmlFileName) {
+        private static void Test(string dbId, string xmlFileName, int maxCount = 0) {
             Console.WriteLine($"Testing DocBase {dbId} with the questions from [{xmlFileName}]...");
 
             var docBaseFolder = System.IO.Path.Combine(_dataFolder, dbId);
@@ -120,6 +159,14 @@ namespace Korzh.DeepThought
                     }
                 }
                 count++;
+                if (count % 100 == 0) {
+                    Console.Write($"\r{count} questions processed.  ");
+                }
+
+                if (maxCount > 0 && count >= maxCount) {
+                    return false;
+                }
+                return true;
             });
 
             double precision = TP / (TP + FP);
@@ -127,7 +174,6 @@ namespace Korzh.DeepThought
 
             Console.WriteLine();
             Console.WriteLine($"Done!");
-            Console.WriteLine($"{count} questions processed");
             Console.WriteLine($"TP:{TP}, FP:{FP}, TN: {TN}, FN:{FN}");
             Console.WriteLine($"Precision:{precision}, Recall:{recall}");
         }

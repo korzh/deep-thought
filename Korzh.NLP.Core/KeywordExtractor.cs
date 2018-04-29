@@ -27,9 +27,18 @@ namespace Korzh.NLP
             };
 
             _mapper = (word) => {
-                return _wordStemmer.Stem(word);
+                if (IsIntNumber(word)) {
+                    return "__NUMBER";
+                }
+                else {
+                    return _wordStemmer.Stem(word);
+                }
             };
 
+        }
+
+        private bool IsIntNumber(string word) {
+            return (int.TryParse(word, out int d));
         }
 
         public Func<string, bool> Filter => _filter;
