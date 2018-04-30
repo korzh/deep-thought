@@ -12,14 +12,14 @@ namespace StackExchange
         static void Main(string[] args)
         {
             Console.WriteLine("Reading questions and answers...");
-            ReadAnswers("QuestionsAnswers.csv", "sfodn-articles.xml", "qtemp.xml");
+            ReadAnswers("QuestionsAnswers.csv", "sofdn-articles.xml", "qtemp.xml");
          
             Console.WriteLine("Reading duplicated questions...");        
-            var count = ReadQuestions("QDuplicates.csv", "qtemp.xml", "sfodn-questions.xml");
+            var count = ReadQuestions("QDuplicates.csv", "qtemp.xml", "sofdn-questions.xml");
 
             var trainCount = count / 5;
 
-            SplitQuestionsXml("sfodn-questions.xml", "sfodn-questions-train.xml", "sfodn-questions-test.xml", trainCount);
+            SplitQuestionsXml("sofdn-questions.xml", "sofdn-questions-train.xml", "sofdn-questions-test.xml", trainCount);
 
             Console.WriteLine();
             Console.WriteLine();

@@ -68,6 +68,7 @@ namespace Korzh.DeepThought
             docIndex.Recalculate();
 
             var docBaseFolder = Path.Combine(_dataFolder, dbId);
+            Directory.CreateDirectory(docBaseFolder);
 
             var wordsFilePath = Path.Combine(docBaseFolder, "vocabulary.txt");
             Console.WriteLine($"Dumping {dbId} vocabulary to [{wordsFilePath}]...");
